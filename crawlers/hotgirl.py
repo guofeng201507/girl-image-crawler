@@ -5,12 +5,12 @@ import logging
 from typing import Iterator, Optional
 from urllib.parse import urljoin
 
-from base_crawler import BaseCrawler, ImageItem, GalleryItem
+from playwright_crawler import PlaywrightCrawler, ImageItem, GalleryItem
 
 logger = logging.getLogger(__name__)
 
 
-class HotgirlCrawler(BaseCrawler):
+class HotgirlCrawler(PlaywrightCrawler):
     """Hotgirl爬虫"""
     
     def __init__(self):
@@ -20,7 +20,8 @@ class HotgirlCrawler(BaseCrawler):
     def get_galleries(self, page: int = 1) -> Iterator[GalleryItem]:
         """获取图集列表"""
         url = self.list_url_template.format(page=page)
-        html = self.get_html(url)
+        # 使用更宽松的等待策略
+        html = self.get_page_content(url)
         
         if html is None:
             logger.error(f"无法获取页面: {url}")
@@ -35,8 +36,8 @@ class HotgirlCrawler(BaseCrawler):
         
         for article in articles:
             try:
-                link_elem = article.xpath('.//h2[@class="entry-title"]/a/@href')
-                title_elem = article.xpath('.//h2[@class="entry-title"]/a/text()')
+                link_elem = article.xpath('.//h2[contains(@class, "entry-title")]/a/@href')
+                title_elem = article.xpath('.//h2[contains(@class, "entry-title")]/a/text()')
                 
                 if not link_elem:
                     continue
@@ -57,24 +58,30 @@ class HotgirlCrawler(BaseCrawler):
     
     def get_images(self, gallery: GalleryItem) -> Iterator[ImageItem]:
         """获取图集中的图片"""
-        html = self.get_html(gallery.url)
+        html = self.get_page_content(gallery.url)
         
         if html is None:
             logger.error(f"无法获取图集页面: {gallery.url}")
             return
         
-        # 解析图片
-        img_urls = html.xpath('//div[@class="entry-content"]//img/@src')
+        # 解析图片 - 优先使用 data-src（懒加载）
+        img_urls = html.xpath('//div[contains(@class, "entry-content")]//img/@data-src')
+        if not img_urls:
+            img_urls = html.xpath('//div[contains(@class, "entry-content")]//img/@src')
         
         if not img_urls:
             img_urls = html.xpath('//div[@class="content"]//img/@src')
         
         for idx, img_url in enumerate(img_urls, 1):
+            # 跳过 data URI 和无效图片
+            if img_url.startswith('data:') or '.svg' in img_url:
+                continue
+            
             if not img_url.startswith('http'):
                 img_url = urljoin(self.base_url, img_url)
             
             ext = img_url.split('.')[-1].split('?')[0]
-            if ext not in ['jpg', 'jpeg', 'png', 'webp']:
+            if ext not in ['jpg', 'jpeg', 'png', 'webp', 'gif']:
                 ext = 'jpg'
             filename = f"{idx:04d}.{ext}"
             
@@ -85,40 +92,6 @@ class HotgirlCrawler(BaseCrawler):
                 filename=filename,
                 meta={'index': idx}
             )
-    
-    def crawl(self, start_page: int = 1, end_page: Optional[int] = None, max_images: int = 10):
-        """爬取，限制下载数量"""
-        logger.info(f"开始爬取 {self.name}，最多下载 {max_images} 张")
-        
-        page = start_page
-        downloaded = 0
-        
-        while downloaded < max_images:
-            if end_page and page > end_page:
-                break
-            
-            logger.info(f"正在处理第 {page} 页...")
-            galleries = list(self.get_galleries(page))
-            
-            if not galleries:
-                break
-            
-            for gallery in galleries:
-                if downloaded >= max_images:
-                    break
-                
-                for image in self.get_images(gallery):
-                    if downloaded >= max_images:
-                        break
-                    
-                    self.stats['total'] += 1
-                    if self.download_image(image):
-                        downloaded += 1
-                        logger.info(f"已下载: {downloaded}/{max_images}")
-            
-            page += 1
-        
-        self.print_stats()
 
 
 if __name__ == '__main__':
