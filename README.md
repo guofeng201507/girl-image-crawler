@@ -28,29 +28,35 @@
 
 ## 快速开始
 
-### 安装依赖
+### 安装依赖（使用 uv - 推荐）
 
-**方式一：使用 pip（推荐）**
+**安装 uv**
+
+```bash
+# macOS/Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Windows
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+**创建环境并安装**
+
+```bash
+# 创建虚拟环境（自动下载 Python）
+uv venv
+
+# 安装项目依赖
+uv pip install -e .
+
+# 安装开发依赖
+uv pip install -e ".[dev]"
+```
+
+**或者使用传统 pip**
 
 ```bash
 pip install -e .
-```
-
-**方式二：使用 uv（最快）**
-
-```bash
-# 安装 uv
-pip install uv
-
-# 创建虚拟环境并安装依赖
-uv venv
-uv pip install -e .
-```
-
-**方式三：使用 pipx（全局安装）**
-
-```bash
-pipx install .
 ```
 
 ### 基本使用
@@ -204,16 +210,31 @@ with MyCrawler() as crawler:
 
 ## 依赖管理
 
-本项目使用 `pyproject.toml` 进行依赖管理，符合 [PEP 517](https://peps.python.org/pep-0517/) 和 [PEP 621](https://peps.python.org/pep-0621/) 标准。
+本项目使用 `uv` 进行依赖管理，同时兼容标准 `pyproject.toml`。
 
-### 开发依赖安装
+### uv 常用命令
 
 ```bash
-# 安装开发依赖
-pip install -e ".[dev]"
+# 创建虚拟环境（自动下载 Python）
+uv venv
 
-# 或使用 uv
+# 激活环境
+# Windows:
+.venv\Scripts\activate
+# macOS/Linux:
+source .venv/bin/activate
+
+# 安装依赖
+uv pip install -e .
+
+# 安装开发依赖
 uv pip install -e ".[dev]"
+
+# 同步依赖（根据 pyproject.toml）
+uv pip sync
+
+# 生成锁定文件
+uv pip compile pyproject.toml -o uv.lock
 ```
 
 ### 代码格式化
