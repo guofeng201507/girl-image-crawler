@@ -30,8 +30,27 @@
 
 ### 安装依赖
 
+**方式一：使用 pip（推荐）**
+
 ```bash
-pip install requests lxml
+pip install -e .
+```
+
+**方式二：使用 uv（最快）**
+
+```bash
+# 安装 uv
+pip install uv
+
+# 创建虚拟环境并安装依赖
+uv venv
+uv pip install -e .
+```
+
+**方式三：使用 pipx（全局安装）**
+
+```bash
+pipx install .
 ```
 
 ### 基本使用
@@ -182,6 +201,31 @@ with MyCrawler() as crawler:
 2. **尊重网站规则**：请勿过度频繁请求，避免对目标网站造成压力
 3. **版权问题**：下载的图片仅供个人学习研究，请勿用于商业用途
 4. **代理设置**：部分网站需要科学上网才能访问
+
+## 依赖管理
+
+本项目使用 `pyproject.toml` 进行依赖管理，符合 [PEP 517](https://peps.python.org/pep-0517/) 和 [PEP 621](https://peps.python.org/pep-0621/) 标准。
+
+### 开发依赖安装
+
+```bash
+# 安装开发依赖
+pip install -e ".[dev]"
+
+# 或使用 uv
+uv pip install -e ".[dev]"
+```
+
+### 代码格式化
+
+```bash
+# 使用 black 格式化代码
+black .
+
+# 使用 ruff 检查代码
+ruff check .
+ruff check . --fix
+```
 
 ## 许可证
 
